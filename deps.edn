@@ -1,0 +1,5 @@
+{:paths   ["src" "resources"]
+ :deps    {digest {:mvn/version "1.4.9"}
+           com.clojure-goes-fast/clj-memory-meter {:mvn/version "0.1.2"}}
+ :aliases {:start {:main-opts ["-m" "rf-search.core"]}
+           :test  {:extra-paths ["test"]}}}
