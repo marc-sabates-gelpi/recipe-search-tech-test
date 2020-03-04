@@ -20,8 +20,7 @@ Further work would need to take into account other indexing structures, e.g. Bin
 ## Timekeeping
 
 03/03/2020 1h 15min
-04/03/2020 3h 15min
-04/03/2020 Start 21:30
+04/03/2020 4h 15min
 
 ## TODO
 

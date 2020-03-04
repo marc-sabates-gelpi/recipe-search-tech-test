@@ -82,6 +82,7 @@
 (defn get-option!
   "Return the user input."
   []
+  (println "Options:\ne or q\t-> exit\ns words\t-> search")
   (print "$ ")
   (flush)
   (let [input (string/split (read-line) #"\s")]
@@ -90,8 +91,23 @@
 
 (defn search
   [words]
-  (let [words (map string/lower-case words)]
-    (or (take max-entries (map :id (get @index (first words)))) ["No results"])))
+  (or (some->> words
+               (map string/lower-case)
+               first
+               (get @index)
+               (map :id)
+               (take max-entries))
+      [">>> No results <<<"]))
+
+(defn search!
+  [args]
+  (if (seq args)
+    (printf "Search results:\n\n%s\n\n" (apply str (interpose "\n" (search args))))
+    (println ">>> No search terms introduced <<<")))
+
+(def exit? #{"e" "q"})
+(def search? #{"s"})
+(def index? #{"i"})
 
 (defn -main
   []
@@ -99,23 +115,15 @@
     (println "Starting..")
     (index!)
     (loop [option nil args nil]
-      (case option
-        ("e" "q") (println "Exiting!")
-        "s" (do
-              (if (seq args)
-                (println "Search results:\n" (apply str (interpose " " (search args))))
-                (println "No search terms introduced"))
-              (let [input (get-option!)]
-                (recur (:option input) (:args input))))
-        "i" (do
-              (index!)
-              (let [input (get-option!)]
-                (recur (:option input) (:args input))))
-        (do
-          (println "Options:\n e or q -> exit\ns words -> search\ni -> re-index")
-          (let [input (get-option!)]
-            (recur (:option input) (:args input))))))
-    (close-watcher w)))
+      (when-not (exit? option)
+        (cond
+          (search? option) (search! args)
+          (index? option) (index!))
+        (let [input (get-option!)]
+          (recur (:option input) (:args input)))))
+    (println "Exiting!")
+    (close-watcher w)
+    nil))
 
 
 (comment (mm/measure (-main)))
