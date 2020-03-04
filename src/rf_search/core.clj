@@ -4,6 +4,7 @@
             [clojure.java.io :refer [file as-file]]
             [clojure.string :as string]
             #_[digest :as digest]
+            [juxt.dirwatch :refer [watch-dir close-watcher]]
             [taoensso.timbre :refer [debug spy]]))
 
 #_(defonce ^:private register (atom {}))
@@ -15,7 +16,7 @@
   their frequency within a file."
   [{:keys [id content] :as _file-details}]
   (->> content
-       (re-seq #"[a-zA-Z]{4,}")
+       (re-seq #"[a-zA-Z\-]{4,}")
        (map string/lower-case)
        frequencies
        (map (juxt key (comp #(list {:freq % :id id}) val)))
@@ -68,14 +69,15 @@
 
 (defn index!
   "Replace current index with a new one."
-  []
+  [& args]
   (println "Indexing..")
   (let [{new-index :index} (get-index-register "resources/recipes")]
     (reset! index new-index)
     #_(let [{new-index :index new-register :register} (get-index-register "resources/recipes")]
         (swap! register merge new-register)
         (swap! index update-index new-index (keys register)))
-    nil))
+    nil)
+  (println "Indexing done.."))
 
 (defn get-option!
   "Return the user input."
@@ -93,25 +95,27 @@
 
 (defn -main
   []
-  (println "Starting..")
-  (index!)
-  (loop [option nil args nil]
-    (case option
-      ("e" "q") (println "Exiting!")
-      "s" (do
-            (if (seq args)
-              (println "Search results:\n" (apply str (interpose " " (search args))))
-              (println "No search terms introduced"))
-            (let [input (get-option!)]
-              (recur (:option input) (:args input))))
-      "i" (do
-            (index!)
-            (let [input (get-option!)]
-              (recur (:option input) (:args input))))
-      (do
-        (println "Options:\n e or q -> exit\ns words -> search\ni -> re-index")
-        (let [input (get-option!)]
-          (recur (:option input) (:args input)))))))
+  (let [w (watch-dir index! (file "resources/recipes"))]
+    (println "Starting..")
+    (index!)
+    (loop [option nil args nil]
+      (case option
+        ("e" "q") (println "Exiting!")
+        "s" (do
+              (if (seq args)
+                (println "Search results:\n" (apply str (interpose " " (search args))))
+                (println "No search terms introduced"))
+              (let [input (get-option!)]
+                (recur (:option input) (:args input))))
+        "i" (do
+              (index!)
+              (let [input (get-option!)]
+                (recur (:option input) (:args input))))
+        (do
+          (println "Options:\n e or q -> exit\ns words -> search\ni -> re-index")
+          (let [input (get-option!)]
+            (recur (:option input) (:args input))))))
+    (close-watcher w)))
 
 
 (comment (mm/measure (-main)))
