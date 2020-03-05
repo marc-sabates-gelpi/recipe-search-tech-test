@@ -9,18 +9,42 @@
 (defonce ^:private index (atom {}))
 (def ^:private max-entries 10)
 (def ^:private recipes-dir "resources/recipes")
+(def ^:private words-per-side 2)
+
+(defn get-collocations
+  "Return a collection of maps with each elem in `coll` and it's surrounding elems.
+  It doesn't return elements outside of the range of `coll`.
+  Return example: `'({:word \"apple\" :collocations '(\"gala\" \"red\")})`"
+  ([m coll]
+   (map (partial get-collocations m coll) (range (count coll))))
+  ([m coll n]
+   (let [coll (vec coll)
+         max  (dec (count coll))]
+     {:word         (get coll n)
+      :collocations (->> (for [ix (range (- n m) (+ n m 1))
+                               :when (and (<= 0 ix max)
+                                          (not= n ix))]
+                           ix)
+                         (map #(get coll %)))})))
 
 (defn file->index
   "Return a map consisting of words as keys and
   their frequency within a file.
   See `get-index` for return format."
   [{:keys [id content] :as _file-details}]
-  (->> content
-       (re-seq #"[a-zA-Z\-]{4,}")
-       (map string/lower-case)
-       frequencies
-       (map (juxt key (comp #(list {:freq % :id id}) val)))
-       (into {})))
+  (let [words        (->> content
+                          (re-seq #"[a-zA-Z\-]{4,}")
+                          (map string/lower-case))
+        collocations (->> words
+                          (get-collocations words-per-side)
+                          (map (fn [{:keys [word collocations]}] [word collocations]))
+                          (into {}))]
+    (->> words
+         frequencies
+         (map (juxt key (comp #(array-map :freq % :id id) val)))
+         (map (fn [[k v]] [k (assoc v :collocations (get collocations k))]))
+         (map (fn [[k v]] [k (list v)]))
+         (into {}))))
 
 (defn dir->files
   "Return the files in a directory.
@@ -41,11 +65,13 @@
   \"pear\" '({:freq 7 id: \"file path\"} {:freq 2 id: \"file path 3\"})}`.
   The list in the values is sorted by `:freq`."
   [s]
-  (->> (dir->files s)
-       (pmap (comp file->index #(assoc % :content (slurp (:id %)))))
-       (reduce (partial merge-with into) {})
-       (map (juxt key (comp reverse (partial sort-by :freq) val)))
-       (into {})))
+  ;; FIXME: Indexing took 1.2 secs before the collocations
+  ;;        after it takes 13 secs! :(
+  (time (->> (dir->files s)
+             (pmap (comp file->index #(assoc % :content (slurp (:id %)))))
+             (reduce (partial merge-with into) {})
+             (map (juxt key (comp reverse (partial sort-by :freq) val)))
+             (into {}))))
 
 #_(defn merge-freqs
   "Return a merged list with `new` replacing `old` by `:id`."
@@ -105,13 +131,13 @@
 (defn search
   "Return the serach results or a no results message."
   [words]
-  (or (some->> words
-               (map string/lower-case)
-               first
-               (get @index)
-               (map :id)
-               (take max-entries))
-      [">>> No results <<<"]))
+  (time (or (some->> words
+                     (map string/lower-case)
+                     first
+                     (get @index)
+                     (map :id)
+                     (take max-entries))
+            [">>> No results <<<"])))
 
 (defn search!
   "Print out the serach results for the given `words`."
