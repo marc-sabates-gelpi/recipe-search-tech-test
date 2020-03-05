@@ -67,17 +67,35 @@
   [old new files]
   (merge-with merge-freqs old new))
 
-(defn index!
-  "Replace current index with a new one."
-  [& args]
-  (println "Indexing..")
+(defn partial-index!
+  [args]
+  ;;TODO: This needs to be debounced
+  (println "Updating index..")
+  (debug "---> updated files:" (->> args
+                                    (filter (comp #{:modify :delete} :action))
+                                    (map (juxt (comp str :file) :action))
+                                    (into {})))
+  ;; TODO: Legacy process. Please implement partial update
   (let [{new-index :index} (get-index-register "resources/recipes")]
     (reset! index new-index)
     #_(let [{new-index :index new-register :register} (get-index-register "resources/recipes")]
         (swap! register merge new-register)
-        (swap! index update-index new-index (keys register)))
-    nil)
+        (swap! index update-index new-index (keys register))))
+  (println "Updating done.."))
+
+(defn full-index!
+  []
+  (println "Indexing..")
+  (let [{new-index :index} (get-index-register "resources/recipes")]
+    (reset! index new-index))
   (println "Indexing done.."))
+
+(defn index!
+  "Replace current index with a new one."
+  [& args]
+  (if (seq args)
+    (partial-index! args)
+    (full-index!)))
 
 (defn get-option!
   "Return the user input."
