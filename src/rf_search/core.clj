@@ -13,17 +13,15 @@
 (defn partial-index!
   "Update the `index` with the new file changes."
   [args]
-  (println "Updating index..")
-  (debug "---> updated files:" (some->> args
-                                        (filter (comp #{:modify :delete} :action))
-                                        (map (juxt (comp str :file) :action))
-                                        (into {})))
-  ;; TODO: Legacy process. Please implement partial update
-  (reset! index (indexing/get-index recipes-dir))
-  #_(let [{new-index :index new-register :register} (get-index "resources/recipes")]
-      (swap! register merge new-register)
-      (swap! index update-index new-index (keys register)))
-  (println "Updating done.."))
+  (let [updates (->> args
+                     (filter (comp #{:modify :delete} :action))
+                     (map (juxt (comp str :file) :action))
+                     (into {}))]
+    (when (seq updates)
+      (println "Updating index..")
+      ;; TODO: Implement partial update
+      (reset! index (indexing/get-index recipes-dir))
+      (println "Updating done.."))))
 
 (defn full-index!
   "Replace the index with a new index."
