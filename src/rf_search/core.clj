@@ -3,17 +3,17 @@
             [clojure.edn :as edn]
             [clojure.java.io :refer [file as-file]]
             [clojure.string :as string]
-            #_[digest :as digest]
             [juxt.dirwatch :refer [watch-dir close-watcher]]
             [taoensso.timbre :refer [debug spy]]))
 
-#_(defonce ^:private register (atom {}))
 (defonce ^:private index (atom {}))
 (def ^:private max-entries 10)
+(def ^:private recipes-dir "resources/recipes")
 
 (defn file->index
   "Return a map consisting of words as keys and
-  their frequency within a file."
+  their frequency within a file.
+  See `get-index` for return format."
   [{:keys [id content] :as _file-details}]
   (->> content
        (re-seq #"[a-zA-Z\-]{4,}")
@@ -22,35 +22,30 @@
        (map (juxt key (comp #(list {:freq % :id id}) val)))
        (into {})))
 
-#_(defn file->md5
-  "Return the md5sum of a given file `id` when it differs
-  from the registered one."
-  [id]
-  (let [md5 (digest/md5 (as-file id))]
-    (when-not (= (get @register id) md5)
-      {:id id :md5 md5})))
-
 (defn dir->files
-  "Return the files in a directory."
+  "Return the files in a directory.
+  The return format is a collection of maps `{:id <file path>}.`"
   [s]
   (->> s
        file
        file-seq
        (map str)
        rest                                                 ;; first element is the dir
-       #_(keep file->md5)
        (map (partial hash-map :id))))
 
-(defn get-index-register
+(defn get-index
+  "Return an index for the words in the coll of files `s`.
+  The index is a map indexed by the word and the values a list of
+  maps with the frequency of the word in that file, e.g.
+  `{\"apple\" '({:freq 4 id: \"file path\"} {:freq 1 id: \"file path 2\"})
+  \"pear\" '({:freq 7 id: \"file path\"} {:freq 2 id: \"file path 3\"})}`.
+  The list in the values is sorted by `:freq`."
   [s]
-  (let [files    (dir->files s)
-        index    (->> files
-                      (pmap (comp file->index #(assoc % :content (slurp (:id %)))))
-                      (reduce (partial merge-with into) {})
-                      (map (juxt key (comp reverse (partial sort-by :freq) val)))
-                      (into {}))
-        #_#_register (into {} (map (juxt :id :md5) files))]
-    {:index index #_#_:register register}))
+  (->> (dir->files s)
+       (pmap (comp file->index #(assoc % :content (slurp (:id %)))))
+       (reduce (partial merge-with into) {})
+       (map (juxt key (comp reverse (partial sort-by :freq) val)))
+       (into {})))
 
 #_(defn merge-freqs
   "Return a merged list with `new` replacing `old` by `:id`."
@@ -68,37 +63,37 @@
   (merge-with merge-freqs old new))
 
 (defn partial-index!
+  "Update the `index` with the new file changes."
   [args]
-  ;;TODO: This needs to be debounced
   (println "Updating index..")
-  (debug "---> updated files:" (->> args
-                                    (filter (comp #{:modify :delete} :action))
-                                    (map (juxt (comp str :file) :action))
-                                    (into {})))
+  (debug "---> updated files:" (some->> args
+                                        (filter (comp #{:modify :delete} :action))
+                                        (map (juxt (comp str :file) :action))
+                                        (into {})))
   ;; TODO: Legacy process. Please implement partial update
-  (let [{new-index :index} (get-index-register "resources/recipes")]
-    (reset! index new-index)
-    #_(let [{new-index :index new-register :register} (get-index-register "resources/recipes")]
-        (swap! register merge new-register)
-        (swap! index update-index new-index (keys register))))
+  (reset! index (get-index recipes-dir))
+  #_(let [{new-index :index new-register :register} (get-index "resources/recipes")]
+      (swap! register merge new-register)
+      (swap! index update-index new-index (keys register)))
   (println "Updating done.."))
 
 (defn full-index!
+  "Replace the index with a new index."
   []
   (println "Indexing..")
-  (let [{new-index :index} (get-index-register "resources/recipes")]
-    (reset! index new-index))
+  (reset! index (get-index recipes-dir))
   (println "Indexing done.."))
 
 (defn index!
-  "Replace current index with a new one."
+  "Update or replace the `index` based on if there are
+  individual files changed or not."
   [& args]
   (if (seq args)
     (partial-index! args)
     (full-index!)))
 
 (defn get-option!
-  "Return the user input."
+  "Prompt for the user option."
   []
   (println "Options:\ne or q\t-> exit\ns words\t-> search")
   (print "$ ")
@@ -108,6 +103,7 @@
             (seq (rest input)) (assoc :args (rest input)))))
 
 (defn search
+  "Return the serach results or a no results message."
   [words]
   (or (some->> words
                (map string/lower-case)
@@ -118,9 +114,10 @@
       [">>> No results <<<"]))
 
 (defn search!
-  [args]
-  (if (seq args)
-    (printf "Search results:\n\n%s\n\n" (apply str (interpose "\n" (search args))))
+  "Print out the serach results for the given `words`."
+  [words]
+  (if (seq words)
+    (printf "Search results:\n\n%s\n\n" (apply str (interpose "\n" (search words))))
     (println ">>> No search terms introduced <<<")))
 
 (def exit? #{"e" "q"})
@@ -128,8 +125,9 @@
 (def index? #{"i"})
 
 (defn -main
+  "Start the program and run indexing for the first time."
   []
-  (let [w (watch-dir index! (file "resources/recipes"))]
+  (let [w (watch-dir index! (file recipes-dir))]
     (println "Starting..")
     (index!)
     (loop [option nil args nil]
