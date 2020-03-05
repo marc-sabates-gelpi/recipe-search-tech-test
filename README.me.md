@@ -21,11 +21,15 @@ Further work would need to take into account other indexing structures, e.g. Bin
 
 03/03/2020 1h 15min
 04/03/2020 4h 15min
-05/03/2020 Start 17:20
+05/03/2020 3h 30min
+05/03/2020 Start 21:50
 
 ## TODO
 
-
+Partial indexing
+Performance
+The collocations doesn't seem to be very useful; use another multi word search technique
+Keep only nouns when indexing 
 
 ## License
 
