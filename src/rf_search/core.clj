@@ -3,8 +3,7 @@
             [clojure.string :as string]
             [juxt.dirwatch :refer [watch-dir close-watcher]]
             [rf-search.indexing :as indexing]
-            [rf-search.search :as search]
-            [taoensso.timbre :refer [debug spy]]))
+            [rf-search.search :as search]))
 
 (defonce ^:private index (atom {}))
 (def ^:private recipes-dir "resources/recipes")

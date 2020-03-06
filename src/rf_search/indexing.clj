@@ -64,7 +64,7 @@
   (time (->> (dir->files s)
              (pmap (comp file->index #(assoc % :content (slurp (:id %)))))
              (reduce (partial merge-with into) {})
-             (map (juxt key (comp reverse (partial sort-by :freq) val)))
+             (map (juxt key (comp (partial sort-by :freq >) val)))
              (into {}))))
 
 #_(defn merge-freqs

@@ -2,12 +2,12 @@
 
 RF Search
 
-A serach engine to search on any file in a directory (/resources/recipes)
+A serach engine to search on any file in a directory (resources/recipes)
 The indexing uses a hash map to store each word to each file with the frequency of the word in the file.
 To implement multi word search it uses the context of each word (2 words on each side) and then those collocated words are used
 to increase the match importance.
 After implementing the collocation indexing and search the results are not very promising.. indexing time went up by a ten fold
-and search is many times slower.. (still under 10ms though)..
+and search is many times slower...
 
 Collocation could be improved if the collocated words were more meaningful.. e.g. by filtering any non noun word.. or by using 
 a meaning proximity instead of location proximity.
@@ -36,8 +36,7 @@ There are 3 namespaces
 
 03/03/2020 1h 15min
 04/03/2020 4h 15min
-05/03/2020 3h 30min
-05/03/2020 Start 21:50
+05/03/2020 8h 30min
 
 ## TODO
 
