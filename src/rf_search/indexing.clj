@@ -7,18 +7,18 @@
 (defn get-collocations
   "Return a collection of maps with each elem in `coll` and it's surrounding elems.
   It doesn't return elements outside of the range of `coll`.
+  `radius` is the number of additional elems per side.
   Return example: `'({:word \"apple\" :collocations '(\"gala\" \"red\")})`"
-  ([m coll]
-   (map (partial get-collocations m coll) (range (count coll))))
-  ([m coll n]
+  ([radius coll]
+   (map (partial get-collocations radius coll) (range (count coll))))
+  ([radius coll center]
    (let [coll (vec coll)
          max  (dec (count coll))]
-     {:word         (get coll n)
-      :collocations (->> (for [ix (range (- n m) (+ n m 1))
-                               :when (and (<= 0 ix max)
-                                          (not= n ix))]
-                           ix)
-                         (map #(get coll %)))})))
+     {:word         (get coll center)
+      :collocations (for [ix (range (- center radius) (+ center radius 1))
+                          :when (and (<= 0 ix max)
+                                     (not= center ix))]
+                      (get coll ix))})))
 
 (defn file->index
   "Return a map consisting of words as keys and
@@ -26,17 +26,18 @@
   See `get-index` for return format."
   [{:keys [id content] :as _file-details}]
   (let [words        (->> content
-                          (re-seq #"[a-zA-Z\-]{4,}")
-                          (map string/lower-case))
+                          (re-seq #"[a-zA-Z\-]{4,}")        ;; Taking only words length >= 4
+                          (map string/lower-case))          ;; Word treatment, e.g. noun filtering, plurals
         collocations (->> words
                           (get-collocations words-per-side)
                           (map (fn [{:keys [word collocations]}] [word collocations]))
                           (into {}))]
     (->> words
          frequencies
-         (map (juxt key (comp #(array-map :freq % :id id) val)))
-         (map (fn [[k v]] [k (assoc v :collocations (get collocations k))]))
-         (map (fn [[k v]] [k (list v)]))
+         (map (juxt key (fn [[w freq]]
+                          (list {:freq         freq
+                                 :id           id
+                                 :collocations (get collocations w)}))))
          (into {}))))
 
 (defn dir->files
