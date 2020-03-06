@@ -3,4 +3,5 @@
  :aliases {:dev   {:extra-deps {com.clojure-goes-fast/clj-memory-meter {:mvn/version "0.1.2"}
                                 com.taoensso/timbre                    {:mvn/version "4.10.0"}}}
            :start {:main-opts ["-m" "rf-search.core"]}
-           :test  {:extra-paths ["test"]}}}
+           :test  {:extra-paths ["test"]
+                   :main-opts   ["-m" "rf-search.test-runner"]}}}

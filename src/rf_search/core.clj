@@ -1,6 +1,5 @@
 (ns rf-search.core
-  (:require [clj-memory-meter.core :as mm]
-            [clojure.java.io :refer [file]]
+  (:require [clojure.java.io :refer [file]]
             [clojure.string :as string]
             [juxt.dirwatch :refer [watch-dir close-watcher]]
             [rf-search.indexing :as indexing]
@@ -75,6 +74,3 @@
     (println "Exiting!")
     (close-watcher w)
     nil))
-
-
-(comment (mm/measure (-main)))
