@@ -1,9 +1,8 @@
 (ns rf-search.search
-  (:require [clojure.string :as string]
-            [taoensso.timbre :refer [spy debug]]))
+  (:require [clojure.string :as string]))
 
 (def ^:private max-entries 10)
-(def ^:private debug? true)
+(def ^:private debug? false)
 
 (defn word-treatment
   "Apply the desired word treatments, e.g. spelling, plural vs singular.
