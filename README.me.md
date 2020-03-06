@@ -17,7 +17,9 @@ were done and could be implemented with some more time.. improving the indexing 
 
 The program runs on the CLI with the clojure/clj command line.
 
-Some tests have been written but they are not exhaustive.. 
+Some tests have been written but they are not exhaustive..
+On top of that it would have been great to leverage spec like here:
+https://github.com/marc-sabates-gelpi/clojure-jpro-bikes/blob/cd2fb42b463555ca86f7397d12ab7839bd8b7e37/test/jpro_bikes/bike_test.clj#L9
 
 There are 3 namespaces
 `core` -> The main fn and all the IO fns sit
@@ -33,18 +35,19 @@ There are 3 namespaces
    $ clj -Atest
 
 ## Timekeeping
-
+```
 03/03/2020 1h 15min
 04/03/2020 4h 15min
 05/03/2020 8h 30min
-
+06/03/2020    40min
+```
 ## TODO
 
 * Partial indexing
 * Performance improvement (perhaps using transducers and reducing as much as possible the loops over long colls)
 * The collocations doesn't seem to be very useful; use another multi word search technique
 * Keep only nouns when indexing
-* Further work would need to take into account other indexing structures, e.g. Binary trees, Ternaries trees 
+* Further work would need to take into account other indexing structures, e.g. Binary trees, Ternary trees 
 
 ## License
 

@@ -2,7 +2,7 @@
   (:require [clojure.string :as string]))
 
 (def ^:private max-entries 10)
-(def ^:private debug? false)
+(def ^:private debug? true)
 
 (defn word-treatment
   "Apply the desired word treatments, e.g. spelling, plural vs singular.
@@ -16,7 +16,8 @@
   (get index word))
 
 (defn make-groups
-  "Return a map with the current search word and the others as collocations."
+  "Return a collection of maps with the current search word and the others as collocations.
+  It does it for every word in the collection."
   [words]
   (let [words (vec words)]
     (for [n (range (count words))]
