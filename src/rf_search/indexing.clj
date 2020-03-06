@@ -2,7 +2,7 @@
   (:require [clojure.string :as string]
             [clojure.java.io :refer [file as-file]]))
 
-(def ^:private words-per-side 2)
+(def ^:private words-per-side 1)
 
 (defn get-collocations
   "Return a collection of maps with each elem in `coll` and it's surrounding elems.
@@ -20,6 +20,12 @@
                                      (not= center ix))]
                       (get coll ix))})))
 
+(defn collocation-concat
+  "Return the concating of `({k1 v1} {k2 v2})` by merging the vals
+  into a collection without repeated elements."
+  [ms]
+  (apply merge-with (comp seq set into) ms))
+
 (defn file->index
   "Return a map consisting of words as keys and
   their frequency within a file.
@@ -30,8 +36,8 @@
                           (map string/lower-case))          ;; Word treatment, e.g. noun filtering, plurals
         collocations (->> words
                           (get-collocations words-per-side)
-                          (map (fn [{:keys [word collocations]}] [word collocations]))
-                          (into {}))]
+                          (map (fn [{:keys [word collocations]}] {word collocations}))
+                          collocation-concat)]
     (->> words
          frequencies
          (map (juxt key (fn [[w freq]]
