@@ -30,13 +30,13 @@
 
 (deftest make-groups
   (testing "happy case"
-    (is (= '({:word "word1" :collocations ("word2" "word3")}
-             {:word "word2" :collocations ("word1" "word3")}
-             {:word "word3" :collocations ("word1" "word2")})
+    (is (= '({:word "word1" :collocations #{"word2" "word3"}}
+             {:word "word2" :collocations #{"word1" "word3"}}
+             {:word "word3" :collocations #{"word1" "word2"}})
            (search/make-groups '("word1" "word2" "word3")))))
 
   (testing "not enough words"
-    (is (= '({:word "word1" :collocations ()})
+    (is (= '({:word "word1" :collocations #{}})
            (search/make-groups '("word1")))))
 
   (testing "empty collection"

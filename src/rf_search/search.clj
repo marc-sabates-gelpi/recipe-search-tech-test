@@ -22,7 +22,7 @@
   (let [words (vec words)]
     (for [n (range (count words))]
       {:word         (get words n)
-       :collocations (map #(get words %) (remove #{n} (range (count words))))})))
+       :collocations (set (map #(get words %) (remove #{n} (range (count words)))))})))
 
 (defn get-files-by-collocation
   "Return a list of maps with the matches by collocation.
@@ -44,7 +44,6 @@
   match with any of the collocations on the files indexed for the given word."
   [index {:keys [word collocations] :as _group}]
   (let [file-entries          (get index word)
-        collocations          (set collocations)
         files-by-collocations (get-files-by-collocation file-entries collocations)
         by-collocations-ids   (map (comp :id :file) files-by-collocations)]
     {:with-collocations    files-by-collocations
