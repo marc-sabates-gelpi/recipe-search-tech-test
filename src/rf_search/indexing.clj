@@ -8,23 +8,18 @@
   "Return a collection of maps with each elem in `coll` and it's surrounding elems.
   It doesn't return elements outside of the range of `coll`.
   `radius` is the number of additional elems per side.
-  Return example: `'({:word \"apple\" :collocations '(\"gala\" \"red\")})`"
+  Return example: `'({:word \"apple\" :collocations #{\"gala\" \"red\"}})`"
   ([radius coll]
    (map (partial get-collocations radius coll) (range (count coll))))
   ([radius coll center]
    (let [coll (vec coll)
          max  (dec (count coll))]
      {:word         (get coll center)
-      :collocations (for [ix (range (- center radius) (+ center radius 1))
-                          :when (and (<= 0 ix max)
-                                     (not= center ix))]
-                      (get coll ix))})))
-
-(defn collocation-concat
-  "Return the concating of `({k1 v1} {k2 v2})` by merging the vals
-  into a collection without repeated elements."
-  [ms]
-  (apply merge-with (comp seq set into) ms))
+      :collocations (set
+                      (for [ix (range (- center radius) (+ center radius 1))
+                            :when (and (<= 0 ix max)
+                                       (not= center ix))]
+                        (get coll ix)))})))
 
 (defn file->index
   "Return a map consisting of words as keys and
@@ -37,7 +32,7 @@
         collocations (->> words
                           (get-collocations words-per-side)
                           (map (fn [{:keys [word collocations]}] {word collocations}))
-                          collocation-concat)]
+                          (apply merge-with into))]
     (->> words
          frequencies
          (map (juxt key (fn [[w freq]]
