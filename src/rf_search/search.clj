@@ -32,7 +32,7 @@
             (let [num (->> collocations
                            (filter collocated-words)
                            count)]
-              (if (> num 1)
+              (if (pos? num)
                 (conj result {:num num :file file})
                 result)))
           '()
