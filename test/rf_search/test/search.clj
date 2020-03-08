@@ -46,3 +46,29 @@
   (testing "nil collection"
     (is (= '()
            (search/make-groups nil)))))
+
+(deftest distinct-results
+  (testing "happy case"
+    (is (= [{:id "file1" :details :a}
+            {:id "file2" :details :b}
+            {:id "file3" :details :d}]
+           (search/distinct-results '({:id "file1" :details :a}
+                           {:id "file2" :details :b}
+                           {:id "file1" :details :c}
+                           {:id "file3" :details :d})))))
+
+  (testing "no repeated elems"
+    (is (= [{:id "file1" :details :a}
+            {:id "file2" :details :b}
+            {:id "file3" :details :c}]
+           (search/distinct-results '({:id "file1" :details :a}
+                           {:id "file2" :details :b}
+                           {:id "file3" :details :c})))))
+
+  (testing "empty collection"
+    (is (= []
+           (search/distinct-results '()))))
+
+  (testing "nil collection"
+    (is (= []
+           (search/distinct-results nil)))))

@@ -2,7 +2,6 @@
   (:require [clojure.string :as string]))
 
 (def ^:private max-entries 10)
-(def ^:private debug? true)
 
 (defn word-treatment
   "Apply the desired word treatments, e.g. spelling, plural vs singular.
@@ -28,7 +27,7 @@
   "Return a list of maps with the matches by collocation.
   The maps have two keys `:num` num of collocated words matching and `:file`."
   [all collocated-words]
-  (reduce (fn [result {:keys [collocations file]}]
+  (reduce (fn [result {:keys [collocations] :as file}]
             (let [num (->> collocations
                            (filter collocated-words)
                            count)]
@@ -46,20 +45,40 @@
   (let [file-entries          (get index word)
         files-by-collocations (get-files-by-collocation file-entries collocations)
         by-collocations-ids   (map (comp :id :file) files-by-collocations)]
-    {:with-collocations    files-by-collocations
-     :without-collocations (if (seq files-by-collocations)
-                             (remove (comp #{by-collocations-ids} :id) file-entries)
-                             file-entries)}))
+    {:by-collocation files-by-collocations
+     :by-word        (if (seq by-collocations-ids)
+                       (remove (comp #{by-collocations-ids} :id) file-entries)
+                       file-entries)}))
+
+(defn distinct-results
+  "Return a collection in the same order given without repeated file ids.
+  If a file id occurs in more than one elem, the details from the former
+  (left-to-right) will be the prevailing in the result."
+  [results]
+  (reduce (fn [unified {:keys [id] :as elem}]
+            (if (some (comp #{id} :id) unified)
+              unified
+              (conj unified elem)))
+          []
+          results))
+
+(defn unify-results
+  "Return an ordered collection of search results.
+  The input is a collection of maps with keys `:by-collocations` and `:by-word`.
+  The order is: desc by num of collocations and desc by frequency of word."
+  [results]
+  (concat (map :file (sort-by :num > (mapcat :by-collocation results)))
+          (sort-by :freq > (mapcat :by-word results))))
 
 (defn multiple-word-search
   "Return a collection of ordered results taking into consideration collocations.
   Ordered desc by collocations num and then desc by frequency.
   It could be interesting to deem if high freqs can trump collocation."
   [index words]
-  (let [word-groups      (make-groups words)
-        results-by-group (map (partial search-with-collocations index) word-groups)]
-    (concat (map :file (sort-by :num > (mapcat :with-collocations results-by-group)))
-            (sort-by :freq > (mapcat :without-collocations results-by-group)))))
+  (->> words
+       make-groups
+       (map (partial search-with-collocations index))
+       unify-results))
 
 (defn word-search
   "Return the search depending on whether there is one word on many."
@@ -68,19 +87,13 @@
     (single-word-search index (first words))
     (multiple-word-search index words)))
 
-(defn get-details
-  "Return the file details or only the id depending on the `debug?` flag."
-  [entries]
-  (if debug?
-    entries
-    (map :id entries)))
-
 (defn search
-  "Return the serach results or a no results message."
+  "Return the search results or a no results message."
   [index words]
   (time (or (some->> words
                      word-treatment
                      (word-search index)
+                     distinct-results
                      (take max-entries)
-                     get-details)
+                     (map :id))
             [">>> No results <<<"])))
