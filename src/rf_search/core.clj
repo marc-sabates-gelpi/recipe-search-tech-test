@@ -5,7 +5,7 @@
             [rf-search.indexing :as indexing]
             [rf-search.search :as search]))
 
-(defonce ^:private index (atom {}))
+(def ^:private index (atom {}))
 (def ^:private recipes-dir "resources/recipes")
 
 (defn partial-index!
@@ -47,7 +47,7 @@
             (seq (rest input)) (assoc :args (rest input)))))
 
 (defn search!
-  "Print out the serach results for the given `words`."
+  "Print out the search results for the given `words`."
   [words]
   (if (seq words)
     (printf "Search results:\n\n%s\n\n" (apply str (interpose "\n" (search/search @index words))))
