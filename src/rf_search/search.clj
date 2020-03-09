@@ -27,15 +27,17 @@
   "Return a list of maps with the matches by collocation.
   The maps have two keys `:num` num of collocated words matching and `:file`."
   [all collocated-words]
-  (reduce (fn [result {:keys [collocations] :as file}]
-            (let [num (->> collocations
-                           (filter collocated-words)
-                           count)]
-              (if (pos? num)
-                (conj result {:num num :file file})
-                result)))
-          '()
-          all))
+  (if (seq collocated-words)
+    (reduce (fn [result {:keys [collocations] :as file}]
+              (let [num (->> collocations
+                             (filter collocated-words)
+                             count)]
+                (if (pos? num)
+                  (conj result {:num num :file file})
+                  result)))
+            '()
+            all)
+    '()))
 
 (defn search-with-collocations
   "Return a map with the results by collocation and the rest of results for the given `word`.
@@ -44,10 +46,10 @@
   [index {:keys [word collocations] :as _group}]
   (let [file-entries          (get index word)
         files-by-collocations (get-files-by-collocation file-entries collocations)
-        by-collocations-ids   (map (comp :id :file) files-by-collocations)]
+        by-collocations-ids   (set (map (comp :id :file) files-by-collocations))]
     {:by-collocation files-by-collocations
-     :by-word        (if (seq by-collocations-ids)
-                       (remove (comp #{by-collocations-ids} :id) file-entries)
+     :by-word        (if (seq files-by-collocations)
+                       (remove (comp by-collocations-ids :id) file-entries)
                        file-entries)}))
 
 (defn distinct-results
@@ -73,7 +75,7 @@
 (defn multiple-word-search
   "Return a collection of ordered results taking into consideration collocations.
   Ordered desc by collocations num and then desc by frequency.
-  It could be interesting to deem if high freqs can trump collocation."
+  It could be interesting to consider if high freqs should trump collocation."
   [index words]
   (->> words
        make-groups
